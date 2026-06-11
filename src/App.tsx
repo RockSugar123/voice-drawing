@@ -3,6 +3,7 @@ import { DrawingCanvas } from './components/Canvas';
 import { MicButton } from './components/MicButton';
 import { StatusBar } from './components/StatusBar';
 import { CommandLog } from './components/CommandLog';
+import { UndoRedoButtons } from './components/UndoRedoButtons';
 import { CanvasEngine } from './engine/canvasEngine';
 import { NluAgent } from './nlu/agent';
 import { SpeechRecognizer } from './speech/speechRecognition';
@@ -108,6 +109,11 @@ export default function App() {
         continuous: true,
         onResult: (result) => {
           if (result.isFinal && result.text.trim()) {
+            if (speechRef.current && speechRef.current.getLowConfCount() >= 3) {
+              setStatusMsg('网络似乎不太好，可以试试简短一点的指令');
+              speakError('网络似乎不太好，可以试试简短一点的指令');
+              speechRef.current.resetLowConfCount();
+            }
             handleSpeechResult({ text: result.text.trim(), confidence: result.confidence });
           }
         },
@@ -147,6 +153,10 @@ export default function App() {
         <h1 style={{ fontSize: 20, color: '#FFD700', marginBottom: 4 }}>AI 语音绘图工具</h1>
         <DrawingCanvas engineRef={engineRef} onEngineReady={() => updateStatus()} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <UndoRedoButtons
+            onUndo={() => { engineRef.current?.execute({ op: 'undo' }); updateStatus(); }}
+            onRedo={() => { engineRef.current?.execute({ op: 'redo' }); updateStatus(); }}
+          />
           <MicButton isListening={isListening} isProcessing={isProcessing} onClick={toggleMic} />
           <span style={{ fontSize: 13, color: '#888', maxWidth: 200 }}>{statusMsg}</span>
         </div>
