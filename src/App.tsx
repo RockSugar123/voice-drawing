@@ -6,6 +6,7 @@ import { CommandLog } from './components/CommandLog';
 import { CanvasEngine } from './engine/canvasEngine';
 import { NluAgent } from './nlu/agent';
 import { SpeechRecognizer } from './speech/speechRecognition';
+import { AudioRecorder, transcribeWithWhisper } from './speech/cloudStt';
 import { speak, speakError } from './feedback/tts';
 import type { AgentResponse } from './engine/operations';
 
@@ -19,6 +20,7 @@ export default function App() {
   const engineRef = useRef<CanvasEngine | null>(null);
   const nluRef = useRef<NluAgent>(new NluAgent());
   const speechRef = useRef<SpeechRecognizer | null>(null);
+  const audioRecRef = useRef<AudioRecorder | null>(null);
 
   const [isListening, setIsListening] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -37,15 +39,32 @@ export default function App() {
     if (!engineRef.current) return;
 
     setIsProcessing(true);
+
+    let finalText = result.text;
+
+    // Cloud STT fallback on low confidence
+    if (result.confidence < 0.7 && audioRecRef.current?.isActive()) {
+      setStatusMsg('云端重识别中...');
+      try {
+        const blob = await audioRecRef.current.stopAndRestart();
+        const cloudText = await transcribeWithWhisper(blob);
+        if (cloudText.trim()) {
+          finalText = cloudText;
+        }
+      } catch {
+        // Fall through with Web Speech text
+      }
+    }
+
     setStatusMsg('AI 理解中...');
 
     const snapshot = engineRef.current.getState().getSnapshot(800, 600, '#ffffff');
-    const response: AgentResponse = await nluRef.current.processInstruction(result.text, snapshot);
+    const response: AgentResponse = await nluRef.current.processInstruction(finalText, snapshot);
     const { operations, reply } = response;
 
     if (operations.length === 0) {
       speak(reply);
-      setLog(prev => [...prev, { text: result.text, reply, time: Date.now() }]);
+      setLog(prev => [...prev, { text: finalText, reply, time: Date.now() }]);
       setStatusMsg(reply);
       setIsProcessing(false);
       return;
@@ -68,7 +87,7 @@ export default function App() {
     }
 
     speak(reply);
-    setLog(prev => [...prev, { text: result.text, reply, time: Date.now() }]);
+    setLog(prev => [...prev, { text: finalText, reply, time: Date.now() }]);
     setStatusMsg(reply);
     setIsProcessing(false);
   }, [updateStatus]);
@@ -76,6 +95,8 @@ export default function App() {
   const toggleMic = useCallback(() => {
     if (isListening) {
       speechRef.current?.stop();
+      audioRecRef.current?.dispose();
+      audioRecRef.current = null;
       setIsListening(false);
       setStatusMsg('已停止监听');
       return;
@@ -101,6 +122,10 @@ export default function App() {
     }
 
     speechRef.current.start();
+    audioRecRef.current = new AudioRecorder();
+    audioRecRef.current.start().catch(() => {
+      // Audio recorder is optional — cloud STT won't work but speech will
+    });
     setIsListening(true);
     setStatusMsg('正在听...');
   }, [isListening, handleSpeechResult]);
