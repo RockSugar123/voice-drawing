@@ -31,14 +31,15 @@ export class AudioRecorder {
     this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     this.chunks = [];
     this.lastBlob = null;
-    this.mediaRecorder = new MediaRecorder(this.stream, { mimeType: 'audio/webm' });
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/ogg';
+    this.mediaRecorder = new MediaRecorder(this.stream, { mimeType });
 
     this.mediaRecorder.ondataavailable = (e) => {
       if (e.data.size > 0) this.chunks.push(e.data);
     };
 
     this.mediaRecorder.onstop = () => {
-      this.lastBlob = new Blob(this.chunks, { type: 'audio/webm' });
+      this.lastBlob = new Blob(this.chunks, { type: mimeType });
       this.chunks = [];
     };
 
@@ -46,9 +47,19 @@ export class AudioRecorder {
   }
 
   async stop(): Promise<Blob> {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        if (this.chunks.length > 0) {
+          this.lastBlob = new Blob(this.chunks, { type: 'audio/webm' });
+          resolve(this.lastBlob);
+        } else {
+          reject(new Error('stop timed out with no audio data'));
+        }
+      }, 3000);
+
       const checkBlob = () => {
         if (this.lastBlob) {
+          clearTimeout(timeout);
           resolve(this.lastBlob);
         } else {
           setTimeout(checkBlob, 50);
