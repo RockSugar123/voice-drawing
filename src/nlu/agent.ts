@@ -44,7 +44,6 @@ export class NluAgent {
           messages,
           temperature: 0.3,
           max_tokens: 2000,
-          response_format: { type: 'json_object' },
         }),
         signal: controller.signal,
       });
@@ -116,23 +115,31 @@ export class NluAgent {
       { role: 'system', content: this.systemPrompt },
       { role: 'user', content: 'User instruction: "' + instruction + '"\n\nReturn valid JSON only, no other text.' },
     ];
-    const response = await fetch(LLM_BASE_URL + '/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + LLM_API_KEY,
-      },
-      body: JSON.stringify({
-        model: LLM_MODEL,
-        messages,
-        temperature: 0.1,
-        max_tokens: 2000,
-        response_format: { type: 'json_object' },
-      }),
-    });
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || '';
-    return JSON.parse(content) as AgentResponse;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
+    try {
+      const response = await fetch(LLM_BASE_URL + '/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + LLM_API_KEY,
+        },
+        body: JSON.stringify({
+          model: LLM_MODEL,
+          messages,
+          temperature: 0.1,
+          max_tokens: 2000,
+        }),
+        signal: controller.signal,
+      });
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content || '';
+      return JSON.parse(content) as AgentResponse;
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 }
 
