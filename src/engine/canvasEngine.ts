@@ -40,6 +40,8 @@ export class CanvasEngine {
       case 'clear': return this.clearCanvas();
       case 'undo': return this.undo();
       case 'redo': return this.redo();
+      case 'export_canvas': return this.exportCanvas();
+      case 'set_bg': return this.setBg(op);
       default: return null;
     }
   }
@@ -174,6 +176,23 @@ export class CanvasEngine {
     if (!ok) return "Nothing to redo";
     this.rebuildCanvas();
     return "Redone";
+  }
+
+  private exportCanvas(): string {
+    const dataUrl = this.fabric.toDataURL({ format: 'png', multiplier: 2 });
+    const link = document.createElement('a');
+    link.download = 'drawing-' + Date.now() + '.png';
+    link.href = dataUrl;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    return "Exported image";
+  }
+
+  private setBg(op: Extract<DrawOperation, { op: 'set_bg' }>): string {
+    this.fabric.backgroundColor = op.color;
+    this.fabric.renderAll();
+    return "Changed background";
   }
 
   private rebuildCanvas(): void {

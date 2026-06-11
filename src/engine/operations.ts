@@ -26,7 +26,9 @@ export type DrawOperation =
   | { op: 'clear' }
   | { op: 'undo' }
   | { op: 'redo' }
-  | { op: 'freehand'; points: { x: number; y: number }[]; color: string; width: number };
+  | { op: 'freehand'; points: { x: number; y: number }[]; color: string; width: number }
+  | { op: 'export_canvas' }
+  | { op: 'set_bg'; color: string };
 
 // ---- LLM Response ----
 

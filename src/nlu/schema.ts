@@ -34,6 +34,12 @@ Available operations (return JSON array "operations"):
 
 10. redo - Redo undone action
     { "op": "redo" }
+
+11. export_canvas - Export canvas as PNG image
+    { "op": "export_canvas" }
+
+12. set_bg - Change canvas background color
+    { "op": "set_bg", "color": "#hex" }
 `;
 
 export const POSITIONING_RULES = `

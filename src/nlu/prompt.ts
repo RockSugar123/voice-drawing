@@ -19,7 +19,9 @@ Important rules:
 4. If the instruction cannot be executed (e.g. references non-existent element), explain in reply
 5. Coordinates must be clamped within canvas bounds (0-800 for x, 0-600 for y)
 6. Compound instructions (house, smiley face, tree, etc.) MUST be decomposed into multiple create_shape operations
-7. "draw a house" means drawing the rectangles+triangles that make up a house, NOT creating a single shape named "house"`;
+7. "draw a house" means drawing the rectangles+triangles that make up a house, NOT creating a single shape named "house"
+8. "save" / "保存" / "导出" / "下载" / "export" → use export_canvas operation
+9. "background" / "背景色" / "底色" + color → use set_bg operation (e.g. "背景色改为黑色" → set_bg with "#333333")`;
 }
 
 export function buildUserMessage(instruction: string, snapshot: CanvasSnapshot, history: { role: string; text: string }[]): string {
