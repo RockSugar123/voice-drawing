@@ -22,6 +22,7 @@ export default function App() {
   const nluRef = useRef<NluAgent>(new NluAgent());
   const speechRef = useRef<SpeechRecognizer | null>(null);
   const audioRecRef = useRef<AudioRecorder | null>(null);
+  const processingRef = useRef(false);
 
   const [isListening, setIsListening] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -37,7 +38,8 @@ export default function App() {
   }, []);
 
   const handleSpeechResult = useCallback(async (result: { text: string; confidence: number }) => {
-    if (!engineRef.current) return;
+    if (!engineRef.current || processingRef.current) return;
+    processingRef.current = true;
 
     setIsProcessing(true);
 
@@ -68,6 +70,7 @@ export default function App() {
       setLog(prev => [...prev, { text: finalText, reply, time: Date.now() }]);
       setStatusMsg(reply);
       setIsProcessing(false);
+      processingRef.current = false;
       return;
     }
 
@@ -91,6 +94,7 @@ export default function App() {
     setLog(prev => [...prev, { text: finalText, reply, time: Date.now() }]);
     setStatusMsg(reply);
     setIsProcessing(false);
+    processingRef.current = false;
   }, [updateStatus]);
 
   const toggleMic = useCallback(() => {
