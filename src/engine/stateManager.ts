@@ -73,6 +73,6 @@ export class StateManager {
   }
 
   private pushUndo(): void {
-    this.undoStack.push({ elements: [...this.elements] });
+    this.undoStack.push({ elements: JSON.parse(JSON.stringify(this.elements)) });
   }
 }
